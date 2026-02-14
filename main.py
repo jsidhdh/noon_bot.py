@@ -1,59 +1,95 @@
 import requests
 import smtplib
 import random
-import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# --- الإعدادات الفنية ---
+# --- الإعدادات الثابتة ---
+MY_COUPON_CODE = "MSHL1"
+MY_AFFILIATE_LINK = "https://www.noon.com/saudi-ar"
+
+OFFERS = [
+    {"name": "iPhone 16 Pro 256GB", "price": "4049 AED", "old": "4,699 AED", "cat": "Mobiles"},
+    {"name": "Dyson Airwrap Multi-Styler", "price": "1499 SAR", "old": "2443 SAR", "cat": "Beauty Tech"},
+    {"name": "Apple MacBook Air 13” M4", "price": "3,049 AED", "old": "5,009 AED", "cat": "Laptops"},
+    {"name": "Samsung 75\" Crystal UHD TV", "price": "1,999 AED", "old": "3,999 AED", "cat": "TVs"},
+    {"name": "Roberto Cavalli Florence EDP", "price": "94 AED", "old": "395 AED", "cat": "Perfumes"},
+    {"name": "100% Cotton Bath Mat", "price": "1 AED", "old": "16 AED", "cat": "Home"}
+]
+
 API_KEY = "AIzaSyBCqHSQLQFTLCUsTc5QTcfKSu-C2k5vL5U"
 MAIL_PASS = "nfripukmtxqwlxhl"
 SENDER_EMAIL = "oedn305@gmail.com"
-TARGET_BLOG = "oedn305.Nnnon@blogger.com" 
-NOON_LINK = "https://www.noon.com/saudi-ar" 
+TARGET_BLOG = "oedn305.Nnnon@blogger.com"
 
 def run_noon_bot():
     try:
+        item = random.choice(OFFERS)
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
         
-        # تحسين الطلب ليكون أكثر قبولاً لدى السياسات الأمنية
-        prompt_text = (
-            "Write a helpful 800-word shopping guide and review for a high-quality product available in Saudi Arabia. "
-            "Discuss features and benefits in a professional tone. Use HTML tags like <h2> and <p>. "
-            "The first line must be the TITLE only."
+        prompt = (
+            f"Write a professional shopping review for '{item['name']}'. "
+            f"Stress that the price {item['price']} is ONLY for those who use code '{MY_COUPON_CODE}'. "
+            "Use HTML (<h2>, <p>, <b>). The first line must be the TITLE only."
         )
         
-        payload = {"contents": [{"parts": [{"text": prompt_text}]}]}
-        res = requests.post(url, json=payload, timeout=45)
+        res = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=45)
         data = res.json()
 
-        # فحص وجود 'candidates' قبل استخدامه لتجنب الـ Error
-        if 'candidates' in data and data['candidates']:
+        if 'candidates' in data:
             full_text = data['candidates'][0]['content']['parts'][0]['text']
             lines = full_text.strip().split('\n')
             subject = lines[0].replace("#", "").strip()
             body = "<br>".join(lines[1:])
         else:
-            # خطة بديلة في حال رفض الذكاء الاصطناعي (عشان ما يطلع لك Error)
-            subject = "Exclusive Shopping Guide: Best Deals on Noon Saudi Arabia"
-            body = "<h2>Top Picks for You</h2><p>Discover amazing products with great value on Noon today. Our guide helps you choose the best electronics and lifestyle items.</p>"
-            print("⚠️ الذكاء الاصطناعي لم يستجب، تم استخدام النص الاحتياطي.")
-
-        img = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1000"
+            subject = f"Special Offer: {item['name']}"
+            body = f"<p>Use code {MY_COUPON_CODE} at Noon!</p>"
 
         msg = MIMEMultipart()
         msg['Subject'] = subject
-        msg['From'] = f"Noon Market Guide <{SENDER_EMAIL}>"
+        msg['From'] = f"Noon VIP <{SENDER_EMAIL}>"
         msg['To'] = TARGET_BLOG
-        
+
+        # --- التصميم الجديد مع خاصية النسخ والتحويل الإجباري ---
         html = f"""
-        <div style='direction:ltr; font-family:Arial; padding:20px; border-top:10px solid #feee00; background:#fff;'>
-            <h1 style='color:#222;'>{subject}</h1>
-            <img src='{img}' style='width:100%; border-radius:10px;'>
-            <div style='font-size:1.1em; line-height:1.8; color:#444;'>{body}</div>
-            <div style='text-align:center; background:#feee00; padding:25px; margin-top:20px; border-radius:10px;'>
-                <h3 style='margin:0; color:#000;'>Check the offer on Noon</h3>
-                <a href='{NOON_LINK}' style='display:inline-block; margin-top:15px; background:#000; color:#fff; padding:15px 35px; text-decoration:none; font-weight:bold; border-radius:5px;'>SHOP ON NOON NOW</a>
+        <div style="direction:ltr; font-family:Arial; padding:20px; border:3px solid #feee00; background:#fff;">
+            
+            <div style="background:#000; color:#fff; padding:25px; border-radius:15px; text-align:center; margin-bottom:25px;">
+                <p style="margin:0; font-size:1.2em; color:#feee00;">VIP DISCOUNT PRICE</p>
+                <h2 style="font-size:2.5em; margin:10px 0;">{item['price']}</h2>
+                <p style="text-decoration:line-through; color:#888;">Was: {item['old']}</p>
+            </div>
+
+            <div style="font-size:1.1em; line-height:1.8;">{body}</div>
+
+            <div style="text-align:center; margin-top:40px;">
+                <p style="font-weight:bold; color:#d00000;">👇 Click to Copy Code & Open Noon 👇</p>
+                
+                <button onclick="copyAndGo()" style="background:#feee00; color:#000; padding:25px 50px; border:none; font-weight:bold; font-size:1.8em; border-radius:12px; cursor:pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.1); border-bottom:5px solid #e6c200; width:100%;">
+                    ACTIVATE DEAL: {MY_COUPON_CODE}
+                </button>
+
+                <script>
+                function copyAndGo() {{
+                    // إنشاء حقل مخفي لنسخ الكود
+                    var tempInput = document.createElement('input');
+                    tempInput.value = '{MY_COUPON_CODE}';
+                    document.body.appendChild(tempInput);
+                    tempInput.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(tempInput);
+
+                    // رسالة التنبيه الإجبارية للزائر
+                    alert('✅ Coupon MSHL1 Copied!\\n\\nPaste it at checkout to get the discount.\\nOpening Noon Store now...');
+
+                    // التوجيه للمتجر
+                    window.location.href = '{MY_AFFILIATE_LINK}';
+                }}
+                </script>
+            </div>
+            
+            <div style="text-align:center; margin-top:20px; color:#777; font-size:0.9em;">
+                Code <b>{MY_COUPON_CODE}</b> is ready to be pasted at payment.
             </div>
         </div>
         """
@@ -62,10 +98,10 @@ def run_noon_bot():
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
             server.login(SENDER_EMAIL, MAIL_PASS)
             server.sendmail(SENDER_EMAIL, [TARGET_BLOG], msg.as_string())
-        print(f"✅ تم النشر بنجاح: {subject}")
+        print(f"✅ تم النشر بنجاح مع خاصية النسخ والتحويل: {item['name']}")
 
     except Exception as e:
-        print(f"❌ حدث خطأ غير متوقع: {e}")
+        print(f"❌ خطأ: {e}")
 
 if __name__ == "__main__":
     run_noon_bot()
