@@ -62,62 +62,37 @@ def run_noon_bot():
         msg['To'] = TARGET_BLOG
 
         # تصميم الواجهة الاحترافية (Copy & Redirect)
+        html = # تصميم "بسيط جداً" لضمان التطابق والتنسيق في أي قالب
         html = f"""
-        <div style="direction:rtl; font-family:Arial, sans-serif; border:2px solid #feee00; padding:0; background:#fff; max-width:700px; margin:auto;">
-            <div style="background:#feee00; color:#000; padding:15px; text-align:center; font-size:1.3em; font-weight:bold;">
-                تنبيه: الخصم يتفعل فقط عند استخدام كود: {MY_COUPON_CODE}
-            </div>
+        <div dir="rtl" style="text-align: right; font-family: sans-serif;">
             
-            <div style="padding:20px;">
-                <h1 style="color:#111; text-align:center; font-size:1.8em;">{subject}</h1>
-                
-                <div style="background:#000; color:#fff; padding:30px; border-radius:15px; text-align:center; margin:25px 0; border:4px solid #feee00;">
-                    <p style="margin:0; font-size:1.2em; color:#feee00;">سعر العرض المباشر</p>
-                    <h2 style="font-size:3em; margin:10px 0;">{item['price']}</h2>
-                    <p style="text-decoration:line-through; color:#888; font-size:1.2em;">السعر الأصلي: {item['old']}</p>
-                    
-                    <div style="margin-top:20px; padding:15px; background:#222; border:2px dashed #feee00;">
-                        <p style="margin:0; font-size:1em; color:#fff;">انسخ كود الخصم الآن:</p>
-                        <div id="coupon" style="font-size:3.5em; font-weight:bold; color:#feee00; letter-spacing:5px;">{MY_COUPON_CODE}</div>
-                    </div>
-                </div>
+            <p style="font-size: 1.2em; color: #333;">
+                أهلاً بكم في <b>متجر تم</b>. نقدم لكم اليوم عرضاً حصرياً من متجر نون:
+            </p>
 
-                <div style="font-size:1.2em; line-height:1.8; color:#333; text-align:right;">
-                    {body}
-                </div>
-
-                <div style="text-align:center; margin-top:40px; padding:30px; background:#f0f0f0; border-radius:15px;">
-                    <h3 style="margin-bottom:20px;">جاهز للتسوق بأقل سعر؟</h3>
-                    <button onclick="copyAndRedirect()" style="background:#000; color:#feee00; padding:25px 60px; border:none; font-weight:bold; font-size:1.8em; border-radius:50px; cursor:pointer; border-bottom:6px solid #feee00; width:100%;">
-                        انسخ الكود وافتح نون 🚀
-                    </button>
-                </div>
+            <h2 style="color: #d32f2f;">{item['name']}</h2>
+            
+            <div style="background: #f0f0f0; padding: 15px; border-right: 5px solid #feee00; margin: 20px 0;">
+                <p>السعر الحالي: <b>{item['price']}</b></p>
+                <p>السعر قبل الخصم: <strike>{item['old']}</strike></p>
             </div>
+
+            <div style="line-height: 1.8;">
+                {body_content}
+            </div>
+
+            <hr>
+
+            <div style="text-align: center; background: #fff9c4; padding: 20px; border: 2px dashed #000;">
+                <p style="font-weight: bold;">استخدم كود الخصم المعتمد في متجر نون للحصول على التوفير:</p>
+                <h1 style="font-size: 45px; color: #000; margin: 10px 0;">{MY_COUPON_CODE}</h1>
+                <a href="{MY_AFFILIATE_LINK}" style="display: inline-block; background: #000; color: #feee00; padding: 15px 30px; text-decoration: none; font-weight: bold; border-radius: 5px; font-size: 18px;">
+                    اضغط هنا لتفعيل الخصم في متجر نون
+                </a>
+            </div>
+
+            <p style="margin-top: 20px; font-size: 0.9em; color: #666;">
+                * ملاحظة: هذا العرض متوفر لفترة محدودة عبر متجر تم السعودية.
+            </p>
         </div>
-
-        <script>
-        function copyAndRedirect() {{
-            const el = document.createElement('textarea');
-            el.value = '{MY_COUPON_CODE}';
-            document.body.appendChild(el);
-            el.select();
-            document.execCommand('copy');
-            document.body.removeChild(el);
-            
-            alert('✅ تم نسخ كود الخصم: {MY_COUPON_CODE}\\n\\nسيتم تحويلك الآن للمتجر، قم بلصق الكود عند الدفع للحصول على الخصم.');
-            window.location.href = '{MY_AFFILIATE_LINK}';
-        }}
-        </script>
         """
-        msg.attach(MIMEText(html, 'html'))
-
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
-            server.login(SENDER_EMAIL, MAIL_PASS)
-            server.sendmail(SENDER_EMAIL, [TARGET_BLOG], msg.as_string())
-        print(f"✅ تم النشر بنجاح: {item['name']}")
-
-    except Exception as e:
-        print(f"❌ خطأ: {e}")
-
-if __name__ == "__main__":
-    run_noon_bot()
