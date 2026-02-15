@@ -1,84 +1,115 @@
-import asyncio
-import os
+import time
 import random
-from playwright.async_api import async_playwright
+import schedule
+import requests
+# أي import آخر أعطيتك إياه ضيفه هنا
+import requests
+import smtplib
+import random
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
-async def run_bot():
-    email = os.environ.get('USER_EMAIL')
-    password = os.environ.get('USER_PASSWORD')
+# --- [إعدادات الإمبراطورية] ---
+MY_COUPON_CODE = "MSHL1" # كودك الذهبي
+MY_AFFILIATE_LINK = "https://www.noon.com/saudi-ar" # رابط الأفلييت
+SENDER_EMAIL = "oedn305@gmail.com"
+MAIL_PASS = "nfripukmtxqwlxhl"
+TARGET_BLOG = "oedn305.Nnnon@blogger.com"
+API_KEY = "AIzaSyBCqHSQLQFTLCUsTc5QTcfKSu-C2k5vL5U"
 
-    async with async_playwright() as p:
-        print("🚀 تشغيل نسخة (الاكتساح الشامل) لآخر 3 شهور...")
-        browser = await p.chromium.launch(headless=True)
-        # ميزة: التخفي التام عشان ما ينكشف البوت
-        context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
-        )
-        page = await context.new_page()
+# --- [قائمة المنتجات الشاملة] ---
+OFFERS = [
+    {"name": "iPhone 16 Pro 256GB - Desert Titanium", "price": "4049 AED", "old": "4,699 AED", "cat": "جوالات"},
+    {"name": "Apple MacBook Air 13” M4 MW123", "price": "4,199 SAR", "old": "5,899 SAR", "cat": "لابتوبات"},
+    {"name": "Dyson Airwrap Multi-Styler", "price": "1499 SAR", "old": "2443 SAR", "cat": "جمال"},
+    {"name": "Samsung 75\" Crystal UHD Smart TV", "price": "1,999 AED", "old": "3,999 AED", "cat": "شاشات"},
+    {"name": "Sony DualSense Wireless Controller PS5", "price": "209 SAR", "old": "484 SAR", "cat": "ألعاب"},
+    {"name": "Calvin Klein Eternity Moment EDP 100ml", "price": "83 SAR", "old": "405 SAR", "cat": "عطور"},
+    {"name": "Roberto Cavalli Florence EDP 75ml", "price": "94 AED", "old": "395 AED", "cat": "عطور"},
+    {"name": "Kerastase Genesis Bain Shampoo", "price": "99 AED", "old": "152 AED", "cat": "عناية بالشعر"},
+    {"name": "100% Cotton Bath Mat", "price": "1 AED", "old": "16 AED", "cat": "منزل"},
+    {"name": "Lightweight Summer Blanket", "price": "1 AED", "old": "57 AED", "cat": "منزل"},
+    {"name": "Hikvision D1 Dashcam", "price": "69 SAR", "old": "139 SAR", "cat": "سيارات"},
+    {"name": "Ninebot E2 D E Foldable Scooter", "price": "729 AED", "old": "1,299 AED", "cat": "سكوترات"},
+    {"name": "Apple AirPods 4", "price": "469 SAR", "old": "599 SAR", "cat": "سماعات"}
+]
 
-        # 1. تسجيل الدخول
-        await page.goto('https://www.linkedin.com/login')
-        await page.fill('#username', email)
-        await page.fill('#password', password)
-        await page.click('button[type="submit"]')
-        await asyncio.sleep(7)
+def run_noon_bot():
+    try:
+        item = random.choice(OFFERS)
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+        
+        # برومبت السيو الاحترافي (SEO & Conversion)
+        prompt = (
+            f"Write a viral, SEO-optimized shopping guide in Arabic for '{item['name']}'. "
+            f"Title must be catchy with 'خصم حصرى' and price. "
+            f"Focus on keywords: عروض نون، كود خصم نون السعودية، تخفيضات نون الإمارات، {item['name']}. "
+            f"Include: 1. Why this product is a life-changer. 2. Huge discount breakdown. "
+            f"3. Direct instruction that price {item['price']} is ONLY for those who use code '{MY_COUPON_CODE}'. "
+            f"Use HTML (<h2>, <p>, <b>, <ul>, <li>). Professional and persuasive marketing tone."
+        )
+        
+        res = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=45)
+        data = res.json()
 
-        # 2. فلتر الاكتساح: مسميات مرموقة + المنطقة الشرقية + آخر 3 شهور (7776000 ثانية)
-        # أضفت كل المسميات اللي طلبناها
-        search_query = "Material Coordinator OR Document Controller OR Timekeeper OR Admin OR Safety Officer OR Warehouse"
-        # الرابط المطور للبحث الشامل (عادي + سهل)
-        search_url = f"https://www.linkedin.com/jobs/search/?keywords={search_query}&location=Eastern%20Province%2C%20Saudi%20Arabia&f_TPR=r7776000"
-        
-        print(f"🔎 جاري مسح كافة الوظائف منذ 3 شهور في المنطقة الشرقية...")
-        await page.goto(search_url)
-        await asyncio.sleep(5)
+        if 'candidates' in data:
+            full_text = data['candidates'][0]['content']['parts'][0]['text']
+            lines = full_text.strip().split('\n')
+            subject = lines[0].replace("#", "").strip()
+            body = "<br>".join(lines[1:])
+        else:
+            subject = f"عرض مجنون على {item['name']} - استخدم كود {MY_COUPON_CODE}"
+            body = f"<p>وفر الكثير الآن على {item['name']} حصرياً في نون!</p>"
 
-        # 3. استخراج قائمة الوظائف
-        job_cards = await page.query_selector_all('.jobs-search-results-list__item')
-        print(f"📦 تم العثور على {len(job_cards)} وظيفة محتملة. بدأ الهجوم...")
+        msg = MIMEMultipart()
+        msg['Subject'] = f"🔥 {subject}"
+        msg['From'] = f"Noon VIP Offers <{SENDER_EMAIL}>"
+        msg['To'] = TARGET_BLOG
 
-        applied_count = 0
-        for job in job_cards[:25]: # زيادة الحد لـ 25 وظيفة في المرة الواحدة
-            try:
-                await job.click()
-                await asyncio.sleep(3)
-                
-                # البحث عن زر التقديم (سواء كان Easy Apply أو Apply العادي)
-                # ميزة: يدعم كل أنواع أزرار التقديم
-                apply_button = await page.query_selector('button.jobs-apply-button, .jobs-apply-button--top-card button')
-                
-                if apply_button:
-                    button_text = await apply_button.inner_text()
-                    print(f"🎯 محاولة التقديم على: {button_text}")
-                    await apply_button.click()
-                    await asyncio.sleep(4)
+        # تصميم الواجهة الاحترافية (Copy & Redirect)
+        html = # تصميم "بسيط جداً" لضمان التطابق والتنسيق في أي قالب
+        html = f"""
+        <div dir="rtl" style="text-align: right; font-family: sans-serif;">
+            
+            <p style="font-size: 1.2em; color: #333;">
+                أهلاً بكم في <b>متجر تم</b>. نقدم لكم اليوم عرضاً حصرياً من متجر نون:
+            </p>
 
-                    # إذا كان تقديم سهل، سيحاول إكمال الخطوات
-                    # ميزة: الضغط المتكرر على Next حتى النهاية
-                    for _ in range(6):
-                        next_btn = await page.query_selector('button[aria-label*="Next"], button[aria-label*="Continue"], button[aria-label*="Review"]')
-                        if next_btn:
-                            await next_btn.click()
-                            await asyncio.sleep(2)
-                        else:
-                            break
-                    
-                    # ميزة: التأكد من إرفاق السيفي وإرسال الطلب النهائي
-                    submit_btn = await page.query_selector('button[aria-label*="Submit"]')
-                    if submit_btn:
-                        await submit_btn.click()
-                        applied_count += 1
-                        print(f"✅ تم تقديم الطلب بنجاح! (العدد الحالي: {applied_count})")
-                        await asyncio.sleep(2)
-                        # إغلاق أي نافذة شكر تظهر
-                        close_btn = await page.query_selector('button[aria-label="Dismiss"]')
-                        if close_btn: await close_btn.click()
-                
-            except Exception as e:
-                continue
+            <h2 style="color: #d32f2f;">{item['name']}</h2>
+            
+            <div style="background: #f0f0f0; padding: 15px; border-right: 5px solid #feee00; margin: 20px 0;">
+                <p>السعر الحالي: <b>{item['price']}</b></p>
+                <p>السعر قبل الخصم: <strike>{item['old']}</strike></p>
+            </div>
 
-        await browser.close()
-        print(f"🏁 انتهت العملية. تم التقديم على {applied_count} وظيفة بنجاح.")
+            <div style="line-height: 1.8;">
+                {body_content}
+            </div>
 
-if __name__ == "__main__":
-    asyncio.run(run_bot())
+            <hr>
+
+            <div style="text-align: center; background: #fff9c4; padding: 20px; border: 2px dashed #000;">
+                <p style="font-weight: bold;">استخدم كود الخصم المعتمد في متجر نون للحصول على التوفير:</p>
+                <h1 style="font-size: 45px; color: #000; margin: 10px 0;">{MY_COUPON_CODE}</h1>
+                <a href="{MY_AFFILIATE_LINK}" style="display: inline-block; background: #000; color: #feee00; padding: 15px 30px; text-decoration: none; font-weight: bold; border-radius: 5px; font-size: 18px;">
+                    اضغط هنا لتفعيل الخصم في متجر نون
+                </a>
+            </div>
+
+            <p style="margin-top: 20px; font-size: 0.9em; color: #666;">
+                * ملاحظة: هذا العرض متوفر لفترة محدودة عبر متجر تم السعودية.
+            </p>
+        </div>
+        """
+# --- هذا آخر شيء في الملف ---
+def run_safe_publishing():
+    # هنا ينادي البوت الدوال اللي فوق
+    print("بدأ النشر...")
+
+# مواعيد النشر
+schedule.every().day.at("09:00").do(run_safe_publishing)
+schedule.every().day.at("21:00").do(run_safe_publishing)
+
+while True:
+    schedule.run_pending()
+    time.sleep(60)
