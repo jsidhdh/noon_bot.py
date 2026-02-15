@@ -2,7 +2,7 @@ name: Store Auto Poster
 
 on:
   schedule:
-    - cron: '0 * * * *' # يشتغل كل ساعة
+    - cron: '0 * * * *' # يشتغل تلقائياً كل ساعة
   workflow_dispatch: # زر التشغيل اليدوي
 
 jobs:
@@ -21,5 +21,5 @@ jobs:
         run: pip install requests
 
       - name: Run Poster
-        # تأكد هنا أن اسم الملف هو bot.py أو غيره لاسم ملفك الحقيقي
+        # هنا نضمن تشغيل الملف باسمه الصحيح
         run: python bot.py
