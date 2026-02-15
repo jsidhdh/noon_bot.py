@@ -1,3 +1,8 @@
+import time
+import random
+import schedule
+import requests
+# أي import آخر أعطيتك إياه ضيفه هنا
 import requests
 import smtplib
 import random
@@ -96,3 +101,15 @@ def run_noon_bot():
             </p>
         </div>
         """
+# --- هذا آخر شيء في الملف ---
+def run_safe_publishing():
+    # هنا ينادي البوت الدوال اللي فوق
+    print("بدأ النشر...")
+
+# مواعيد النشر
+schedule.every().day.at("09:00").do(run_safe_publishing)
+schedule.every().day.at("21:00").do(run_safe_publishing)
+
+while True:
+    schedule.run_pending()
+    time.sleep(60)
