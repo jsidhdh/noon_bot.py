@@ -25,35 +25,50 @@ OFFERS = [
 
 def run_noon_bot():
     try:
-        # اختيار منتج عشوائي
         item = random.choice(OFFERS)
         print(f"📦 جاري العمل على منتج: {item['name']}")
         
-        # طلب كتابة وصف من جيميني
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
-        prompt = (f"اكتب مقال تسويقي عربي قصير ومثير لمنتج {item['name']} بسعر {item['price']}. "
-                  f"ركز على أن هذا السعر متاح فقط عند استخدام كود الخصم {MY_COUPON_CODE}. "
-                  f"استخدم HTML للتنسيق مثل <b> و <p>.")
+        # وصف احتياطي (لو فشل الذكاء الاصطناعي)
+        full_text = f"فرصة حصرية للحصول على {item['name']} بأفضل سعر من متجر نون. منتج أصلي ومضمون مع شحن سريع."
         
-        res = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=45)
-        full_text = res.json()['candidates'][0]['content']['parts'][0]['text']
-        
-        # تصميم البوست (HTML)
+        # محاولة طلب الوصف من Gemini (مع حماية ضد الأخطاء)
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+            prompt = (f"اكتب مقال تسويقي عربي قصير ومثير لمنتج {item['name']} بسعر {item['price']}. "
+                      f"ركز على أن هذا السعر متاح فقط عند استخدام كود الخصم {MY_COUPON_CODE}. استخدم HTML.")
+            
+            res = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=15)
+            data = res.json()
+            
+            # التأكد من أن الرد يحتوي على النتائج المطلوبة
+            if 'candidates' in data and len(data['candidates']) > 0:
+                full_text = data['candidates'][0]['content']['parts'][0]['text']
+                print("✨ تم توليد الوصف بنجاح.")
+            else:
+                print("⚠️ الذكاء الاصطناعي لم يستجب بشكل صحيح، نستخدم الوصف الاحتياطي.")
+        except:
+            print("⚠️ فشل الاتصال بالذكاء الاصطناعي، نستخدم الوصف الاحتياطي.")
+
+        # تصميم الإيميل (HTML)
         html_body = f"""
-        <div dir="rtl" style="text-align: right; font-family: sans-serif; border: 2px solid #feee00; padding: 20px; border-radius: 10px;">
-            <h2 style="color: #d32f2f;">🔥 عرض متجر تم الحصري: {item['name']}</h2>
-            <p style="font-size: 18px;">احصل عليه الآن بسعر <b>{item['price']}</b> فقط بدلاً من <strike>{item['old']}</strike></p>
-            <div style="background: #fff9c4; padding: 20px; border: 20px solid #feee00; text-align: center; margin: 15px 0;">
-                <p style="font-weight: bold; font-size: 20px;">كود خصم نون الإضافي:</p>
-                <h1 style="font-size: 50px; color: #000; margin: 10px 0;">{MY_COUPON_CODE}</h1>
-                <a href="{MY_AFFILIATE_LINK}" style="background: #000; color: #feee00; padding: 12px 25px; text-decoration: none; font-weight: bold; font-size: 18px; border-radius: 5px; display: inline-block;">اضغط هنا لتفعيل الخصم</a>
+        <div dir="rtl" style="text-align: right; font-family: Arial, sans-serif; border: 2px solid #feee00; padding: 25px; border-radius: 15px;">
+            <h2 style="color: #d32f2f; border-bottom: 2px solid #feee00; padding-bottom: 10px;">🔥 عرض متجر تم الحصري: {item['name']}</h2>
+            <p style="font-size: 1.1em;">احصل عليه الآن بسعر <b>{item['price']}</b> فقط بدلاً من <strike>{item['old']}</strike></p>
+            
+            <div style="background: #fff9c4; padding: 25px; border: 2px dashed #000; text-align: center; margin: 20px 0;">
+                <p style="font-weight: bold; font-size: 1.2em;">استخدم كود خصم نون الذهبي للحصول على التوفير:</p>
+                <h1 style="font-size: 55px; color: #000; margin: 10px 0;">{MY_COUPON_CODE}</h1>
+                <a href="{MY_AFFILIATE_LINK}" style="background: #000; color: #feee00; padding: 15px 35px; text-decoration: none; font-weight: bold; border-radius: 8px; display: inline-block; font-size: 1.1em;">تفعيل الخصم في نون الآن</a>
             </div>
-            <div style="line-height: 1.8; color: #444;">{full_text}</div>
-            <p style="color: #888; font-size: 12px; margin-top: 20px;">* العرض متاح لفترة محدودة عبر متجر تم.</p>
+
+            <div style="line-height: 1.8; color: #333; font-size: 1.05em;">{full_text}</div>
+            
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+            <p style="color: #888; font-size: 0.9em; text-align: center;">* ملاحظة: العرض متوفر عبر متجر تم السعودية لفترة محدودة.</p>
         </div>
         """
 
-        # إرسال الرسالة إلى بلوجر
+        # إرسال الرسالة
         msg = MIMEMultipart()
         msg['Subject'] = f"🔥 عرض حصري من متجر تم: {item['name']} - كود {MY_COUPON_CODE}"
         msg['From'] = f"Noon VIP Offers <{SENDER_EMAIL}>"
@@ -65,10 +80,10 @@ def run_noon_bot():
             server.login(SENDER_EMAIL, MAIL_PASS)
             server.send_message(msg)
         
-        print(f"✅ تم النشر بنجاح لمنتج {item['name']}")
+        print(f"✅ تم النشر بنجاح! ({item['name']})")
 
     except Exception as e:
-        print(f"❌ حدث خطأ: {e}")
+        print(f"❌ خطأ فادح غير متوقع: {e}")
 
 if __name__ == "__main__":
     run_noon_bot()
