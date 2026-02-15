@@ -2,19 +2,24 @@ name: Store Auto Poster
 
 on:
   schedule:
-    - cron: '0 * * * *' # يشتغل رأس كل ساعة
+    - cron: '0 * * * *' # يشتغل كل ساعة
   workflow_dispatch: # زر التشغيل اليدوي
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
+
       - name: Install dependencies
         run: pip install requests
+
       - name: Run Poster
+        # تأكد هنا أن اسم الملف هو bot.py أو غيره لاسم ملفك الحقيقي
         run: python bot.py
