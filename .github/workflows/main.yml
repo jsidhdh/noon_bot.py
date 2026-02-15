@@ -1,18 +1,20 @@
-name: Noon Bot Runner
+name: Store Auto Poster
+
 on:
   schedule:
-    - cron: '0 */12 * * *'
-  workflow_dispatch:
+    - cron: '0 * * * *' # يشتغل رأس كل ساعة
+  workflow_dispatch: # زر التشغيل اليدوي
+
 jobs:
-  build:
+  publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - name: Install dependencies
         run: pip install requests
-      - name: Run Bot
-        run: python main.py
+      - name: Run Poster
+        run: python bot.py
