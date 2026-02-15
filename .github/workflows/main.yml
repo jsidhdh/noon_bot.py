@@ -2,7 +2,7 @@ name: Store Auto Poster
 
 on:
   schedule:
-    - cron: '0 * * * *' # يشتغل تلقائياً كل ساعة
+    - cron: '0 * * * *' # يشتغل كل ساعة
   workflow_dispatch: # زر التشغيل اليدوي
 
 jobs:
@@ -21,5 +21,7 @@ jobs:
         run: pip install requests
 
       - name: Run Poster
-        # هنا نضمن تشغيل الملف باسمه الصحيح
-        run: python bot.py
+        # الكود هذا بيبحث عن أي ملف بايثون ويشغله عشان ما تضيع المسارات
+        run: |
+          FILE=$(find . -maxdepth 1 -name "*.py" | head -n 1)
+          python $FILE
